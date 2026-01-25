@@ -20,11 +20,15 @@ public class BonsaiMaster : MonoBehaviour
     [Range(0.5f, 2f)]
     public float overallScale = 1f;
 
+    [Header("Scissors")]
+    public bool generateScissors = true;
+
     [Header("Auto Generation")]
     public bool generateOnStart = true;
 
     private BonsaiGenerator generator;
     private BonsaiPot pot;
+    private ScissorsGenerator scissors;
 
     public enum BonsaiStyle
     {
@@ -54,6 +58,12 @@ public class BonsaiMaster : MonoBehaviour
             generator = GetComponent<BonsaiGenerator>();
         if (pot == null)
             pot = GetComponent<BonsaiPot>();
+        if (scissors == null)
+        {
+            scissors = GetComponent<ScissorsGenerator>();
+            if (scissors == null && generateScissors)
+                scissors = gameObject.AddComponent<ScissorsGenerator>();
+        }
     }
 
     /// <summary>
@@ -81,15 +91,23 @@ public class BonsaiMaster : MonoBehaviour
         ApplyScale();
 
         // Share table reference
-        generator.tableTransform = null; // We handle positioning here
+        generator.tableTransform = null;
         generator.generateOnStart = false;
         pot.generateOnStart = false;
 
-        // Generate pot first, then tree
+        if (scissors != null)
+        {
+            scissors.generateOnStart = false;
+            scissors.table = table;
+        }
+
+        // Generate pot, tree, and scissors
         pot.GeneratePot();
         generator.GenerateBonsai();
 
-        // Adjust tree position to be inside pot
+        if (generateScissors && scissors != null)
+            scissors.GenerateScissors();
+
         AdjustTreeInPot();
 
         Debug.Log($"Complete {style} bonsai created with {generator.GetLeafCount()} leaves.");
@@ -104,6 +122,8 @@ public class BonsaiMaster : MonoBehaviour
         InitializeComponents();
         generator.ClearBonsai();
         pot.ClearPot();
+        if (scissors != null)
+            scissors.ClearScissors();
     }
 
     private void PositionOnTable()
