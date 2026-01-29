@@ -43,6 +43,12 @@ public class PruningTool : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 1f; // 3D sound
 
+        // Generate a snip sound if none is assigned
+        if (snipSound == null)
+        {
+            snipSound = GenerateSnipSound();
+        }
+
         // Subscribe to activation event (trigger press)
         grabInteractable.activated.AddListener(OnTriggerPressed);
         grabInteractable.deactivated.AddListener(OnTriggerReleased);
@@ -141,6 +147,27 @@ public class PruningTool : MonoBehaviour
                 inputInteractor.SendHapticImpulse(vibrationIntensity, vibrationDuration);
             }
         }
+    }
+
+    private AudioClip GenerateSnipSound()
+    {
+        int sampleRate = 44100;
+        float duration = 0.15f;
+        int sampleCount = Mathf.CeilToInt(sampleRate * duration);
+        float[] samples = new float[sampleCount];
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float t = (float)i / sampleRate;
+            float envelope = Mathf.Exp(-t * 40f); // Sharp decay
+            float noise = (Random.value * 2f - 1f) * 0.6f;
+            float click = Mathf.Sin(2f * Mathf.PI * 2500f * t) * 0.4f;
+            samples[i] = (noise + click) * envelope;
+        }
+
+        AudioClip clip = AudioClip.Create("SnipSound", sampleCount, 1, sampleRate, false);
+        clip.SetData(samples, 0);
+        return clip;
     }
 
     /// <summary>
