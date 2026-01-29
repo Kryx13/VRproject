@@ -41,6 +41,19 @@ public class PauseManager : MonoBehaviour
             Pause();
     }
 
+    [Header("Panel Distance")]
+    [Tooltip("Distance of the pause panel in front of the player camera.")]
+    float panelDistance = 1.5f;
+
+    [Tooltip("Smoothing speed for panel follow movement.")]
+    float followSpeed = 8f;
+
+    void Update()
+    {
+        if (isPaused && pauseCanvas != null && pauseCanvas.gameObject.activeSelf)
+            FollowPlayer();
+    }
+
     void Pause()
     {
         isPaused = true;
@@ -68,8 +81,27 @@ public class PauseManager : MonoBehaviour
             forward = cam.transform.forward;
         forward.Normalize();
 
-        pauseCanvas.transform.position = cam.transform.position + forward * 2f;
+        pauseCanvas.transform.position = cam.transform.position + forward * panelDistance;
         pauseCanvas.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+    }
+
+    void FollowPlayer()
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+        Vector3 forward = cam.transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 0.001f)
+            forward = cam.transform.forward;
+        forward.Normalize();
+
+        Vector3 targetPos = cam.transform.position + forward * panelDistance;
+        Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
+
+        float dt = Time.unscaledDeltaTime;
+        pauseCanvas.transform.position = Vector3.Lerp(pauseCanvas.transform.position, targetPos, followSpeed * dt);
+        pauseCanvas.transform.rotation = Quaternion.Slerp(pauseCanvas.transform.rotation, targetRot, followSpeed * dt);
     }
 
     void BuildUI()

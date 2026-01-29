@@ -137,12 +137,14 @@ public class ScissorsGenerator : MonoBehaviour
         handle1.transform.SetParent(scissors.transform);
         handle1.transform.localPosition = new Vector3(-handleLength / 2f, thickness, 0);
         handle1.GetComponent<Renderer>().material = handleMat;
+        Object.Destroy(handle1.GetComponent<Collider>());
 
         // Handle 2
         GameObject handle2 = CreateCube("Handle2", handleLength, thickness * 1.5f, thickness);
         handle2.transform.SetParent(scissors.transform);
         handle2.transform.localPosition = new Vector3(-handleLength / 2f, -thickness, 0);
         handle2.GetComponent<Renderer>().material = handleMat;
+        Object.Destroy(handle2.GetComponent<Collider>());
 
         // Pivot point
         GameObject pivot = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -152,18 +154,21 @@ public class ScissorsGenerator : MonoBehaviour
         pivot.transform.localRotation = Quaternion.Euler(90, 0, 0);
         pivot.transform.localScale = new Vector3(thickness * 2f, thickness, thickness * 2f);
         pivot.GetComponent<Renderer>().material = handleMat;
+        Object.Destroy(pivot.GetComponent<Collider>());
 
         // Blade 1
         GameObject blade1 = CreateCube("Blade1", bladeLength, thickness * 0.8f, thickness * 1.2f);
         blade1.transform.SetParent(scissors.transform);
         blade1.transform.localPosition = new Vector3(bladeLength / 2f, thickness * 0.3f, 0);
         blade1.GetComponent<Renderer>().material = bladeMat;
+        Object.Destroy(blade1.GetComponent<Collider>());
 
         // Blade 2
         GameObject blade2 = CreateCube("Blade2", bladeLength, thickness * 0.8f, thickness * 1.2f);
         blade2.transform.SetParent(scissors.transform);
         blade2.transform.localPosition = new Vector3(bladeLength / 2f, -thickness * 0.3f, 0);
         blade2.GetComponent<Renderer>().material = bladeMat;
+        Object.Destroy(blade2.GetComponent<Collider>());
 
         // Cutting trigger zone along the blades
         GameObject triggerZone = new GameObject("CuttingZone");
