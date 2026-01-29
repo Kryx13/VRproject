@@ -25,12 +25,21 @@ This isn't a game you play with a mouse. It’s a craft you master with your han
 
 ---
 
-## 🎮 How to Begin
+## 🚀 How to Play
 
-1. **Enter the Dojo:** Put on your headset and find your center.
-2. **Equip Your Tools:** Reach out and grab your shears from the table.
-3. **Sculpt:** Study the tree. Align your blades. Pull the trigger to make your mark.
-4. **Admire:** Step back and view your creation from any angle.
+1. Download the latest build from the [Releases](../../releases) page.
+2. Extract the archive and run `Bonzai-Therapy.exe`.
+3. Connect your VR headset (SteamVR / OpenXR compatible).
+4. Put on your headset and enjoy!
+
+## 🎮 Controls
+
+| Action | Button |
+|--------|--------|
+| **Grab / Pick up** | Grip button |
+| **Cut (with shears)** | Trigger button |
+| **Move / Teleport** | Thumbstick |
+| **Pause Menu** | Menu button (left hand) |
 
 ---
 
