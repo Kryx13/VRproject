@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep:*)",
-      "Bash(strings:*)",
-      "Bash(ls -la \"C:\\\\Users\\\\kdiar\\\\Desktop\\\\VRproject\\\\Bonzai-Therapy\\\\Assets\\\\BonsaiTherapy\\\\Scenes\"\" 2>/dev/null || ls -la \"C:UserskdiarDesktopVRprojectBonzai-TherapyAssets\"\")"
-    ]
-  }
-}
