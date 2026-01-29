@@ -19,7 +19,7 @@ public class MenuManager : MonoBehaviour
     void Start()
     {
         // Find the AudioSource in the scene (background music)
-        musicSource = FindObjectOfType<AudioSource>();
+        musicSource = Object.FindFirstObjectByType<AudioSource>();
 
         // Wire up button listeners
         if (playButton != null)
