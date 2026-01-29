@@ -111,20 +111,19 @@ public class PruningTool : MonoBehaviour
 
         if (leavesInRange.Count > 0)
         {
-            // Cut the first leaf in range
-            GameObject leafToCut = leavesInRange[0];
-            leavesInRange.RemoveAt(0);
+            // Cut all leaves currently in range
+            int cutCount = leavesInRange.Count;
+            for (int i = 0; i < leavesInRange.Count; i++)
+            {
+                leavesInRange[i].SetActive(false);
+            }
+            leavesInRange.Clear();
 
-            // Disable the leaf (cut it)
-            leafToCut.SetActive(false);
-
-            // Play sound
+            // Play sound and haptic feedback once per cut
             PlaySnipSound();
-
-            // Haptic feedback
             TriggerHaptics();
 
-            Debug.Log("Leaf cut!");
+            Debug.Log($"{cutCount} leaf/leaves cut!");
         }
     }
 
