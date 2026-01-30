@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 
 public class MenuManager : MonoBehaviour
 {
@@ -75,7 +76,7 @@ public class MenuManager : MonoBehaviour
         canvasRect.localScale = Vector3.one * 0.002f;
 
         canvasObj.AddComponent<CanvasScaler>();
-        canvasObj.AddComponent<GraphicRaycaster>();
+        canvasObj.AddComponent<TrackedDeviceGraphicRaycaster>();
 
         // Main panel
         mainPanel = CreatePanel(canvasObj.transform, "MainPanel", canvasRect.sizeDelta);
