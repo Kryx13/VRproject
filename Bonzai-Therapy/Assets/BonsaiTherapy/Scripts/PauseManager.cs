@@ -130,7 +130,7 @@ public class PauseManager : MonoBehaviour
 
     void RegenerateBonsai()
     {
-        BonsaiMaster master = Object.FindFirstObjectByType<BonsaiMaster>();
+        BonsaiMaster master = FindFirstObjectByType<BonsaiMaster>();
         if (master != null)
         {
             master.RandomizeBonsai();
