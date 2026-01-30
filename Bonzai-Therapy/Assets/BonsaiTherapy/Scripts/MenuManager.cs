@@ -8,9 +8,14 @@ public class MenuManager : MonoBehaviour
     Canvas menuCanvas;
     GameObject mainPanel;
     GameObject settingsPanel;
-    static readonly Color textColor = new Color(0.996f, 0.839f, 0.996f, 1f); // #FED6FE
+
+    static readonly Color textColor  = new Color(0.996f, 0.839f, 0.996f, 1f); // #FED6FE
+    static readonly Color panelColor = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+    static readonly Color btnColor   = new Color(0.25f, 0.25f, 0.25f, 1f);
 
     float panelDistance = 1.5f;
+    float followSpeed   = 2f;
+    bool  placed;
 
     void Start()
     {
@@ -30,8 +35,23 @@ public class MenuManager : MonoBehaviour
             forward = cam.transform.forward;
         forward.Normalize();
 
-        menuCanvas.transform.position = cam.transform.position + forward * panelDistance;
-        menuCanvas.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+        Vector3 targetPos = cam.transform.position + forward * panelDistance;
+        Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
+
+        if (!placed)
+        {
+            // First valid frame: snap into position
+            menuCanvas.transform.position = targetPos;
+            menuCanvas.transform.rotation = targetRot;
+            placed = true;
+        }
+        else
+        {
+            // Gentle follow so the menu stays reachable but stable enough to interact with
+            float dt = Time.unscaledDeltaTime;
+            menuCanvas.transform.position = Vector3.Lerp(menuCanvas.transform.position, targetPos, followSpeed * dt);
+            menuCanvas.transform.rotation = Quaternion.Slerp(menuCanvas.transform.rotation, targetRot, followSpeed * dt);
+        }
     }
 
     // ───────────────────── Actions ─────────────────────
@@ -41,9 +61,16 @@ public class MenuManager : MonoBehaviour
         SceneManager.LoadScene("MainScene");
     }
 
-    void ToggleSettings()
+    void ShowSettings()
     {
-        settingsPanel.SetActive(!settingsPanel.activeSelf);
+        mainPanel.SetActive(false);
+        settingsPanel.SetActive(true);
+    }
+
+    void HideSettings()
+    {
+        settingsPanel.SetActive(false);
+        mainPanel.SetActive(true);
     }
 
     void SetVolume(float value)
@@ -65,9 +92,11 @@ public class MenuManager : MonoBehaviour
 
     void BuildUI()
     {
-        // World-space canvas
+        // ── World-space canvas ──
         GameObject canvasObj = new GameObject("MenuCanvas");
+        canvasObj.layer = 5; // UI layer
         canvasObj.transform.SetParent(transform);
+
         menuCanvas = canvasObj.AddComponent<Canvas>();
         menuCanvas.renderMode = RenderMode.WorldSpace;
 
@@ -78,40 +107,46 @@ public class MenuManager : MonoBehaviour
         canvasObj.AddComponent<CanvasScaler>();
         canvasObj.AddComponent<TrackedDeviceGraphicRaycaster>();
 
-        // Main panel
+        // ── Main panel ──
         mainPanel = CreatePanel(canvasObj.transform, "MainPanel", canvasRect.sizeDelta);
 
         float y = 230f;
 
-        // Title
-        CreateText(mainPanel.transform, "TitleText", "Bonza\u00ef Therapy", 44, y);
+        CreateLabel(mainPanel.transform, "TitleText", "Bonza\u00ef Therapy", 44, y);
         y -= 120f;
 
-        // Play button
         CreateButton(mainPanel.transform, "PlayButton", "Play", y, PlayGame);
         y -= 80f;
 
-        // Settings button
-        CreateButton(mainPanel.transform, "SettingsButton", "Settings", y, ToggleSettings);
+        CreateButton(mainPanel.transform, "SettingsButton", "Settings", y, ShowSettings);
         y -= 80f;
 
-        // Quit button
         CreateButton(mainPanel.transform, "QuitButton", "Quit", y, QuitGame);
 
-        // Settings sub-panel
-        settingsPanel = CreatePanel(canvasObj.transform, "SettingsPanel", new Vector2(380, 160));
-        RectTransform settingsRect = settingsPanel.GetComponent<RectTransform>();
-        settingsRect.anchoredPosition = new Vector2(0, -230f);
+        // ── Settings panel ──
+        settingsPanel = CreatePanel(canvasObj.transform, "SettingsPanel", canvasRect.sizeDelta);
 
-        CreateText(settingsPanel.transform, "VolumeLabel", "Volume", 28, 40f);
-        CreateVolumeSlider(settingsPanel.transform, -20f);
+        CreateLabel(settingsPanel.transform, "SettingsTitle", "Settings", 44, 230f);
+        CreateLabel(settingsPanel.transform, "VolumeLabel", "Volume", 28, 80f);
+        CreateVolumeSlider(settingsPanel.transform, 20f);
+        CreateButton(settingsPanel.transform, "BackButton", "Back", -150f, HideSettings);
 
         settingsPanel.SetActive(false);
+    }
+
+    // ───────────────────── Helpers ─────────────────────
+
+    static void SetLayerRecursive(GameObject obj, int layer)
+    {
+        obj.layer = layer;
+        foreach (Transform child in obj.transform)
+            SetLayerRecursive(child.gameObject, layer);
     }
 
     GameObject CreatePanel(Transform parent, string name, Vector2 size)
     {
         GameObject panel = new GameObject(name);
+        panel.layer = 5;
         panel.transform.SetParent(parent, false);
 
         RectTransform rect = panel.AddComponent<RectTransform>();
@@ -119,14 +154,16 @@ public class MenuManager : MonoBehaviour
         rect.anchoredPosition = Vector2.zero;
 
         Image img = panel.AddComponent<Image>();
-        img.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+        img.color = panelColor;
+        img.raycastTarget = true;
 
         return panel;
     }
 
-    void CreateText(Transform parent, string name, string content, int fontSize, float yPos)
+    void CreateLabel(Transform parent, string name, string content, int fontSize, float yPos)
     {
         GameObject textObj = new GameObject(name);
+        textObj.layer = 5;
         textObj.transform.SetParent(parent, false);
 
         RectTransform rect = textObj.AddComponent<RectTransform>();
@@ -139,11 +176,13 @@ public class MenuManager : MonoBehaviour
         text.fontSize = fontSize;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = textColor;
+        text.raycastTarget = false; // Don't block button clicks
     }
 
     void CreateButton(Transform parent, string name, string label, float yPos, UnityEngine.Events.UnityAction action)
     {
         GameObject btnObj = new GameObject(name);
+        btnObj.layer = 5;
         btnObj.transform.SetParent(parent, false);
 
         RectTransform rect = btnObj.AddComponent<RectTransform>();
@@ -151,14 +190,16 @@ public class MenuManager : MonoBehaviour
         rect.anchoredPosition = new Vector2(0, yPos);
 
         Image img = btnObj.AddComponent<Image>();
-        img.color = new Color(0.25f, 0.25f, 0.25f, 1f);
+        img.color = btnColor;
+        img.raycastTarget = true;
 
         Button btn = btnObj.AddComponent<Button>();
         btn.targetGraphic = img;
         btn.onClick.AddListener(action);
 
-        // Button label
+        // Label (child)
         GameObject labelObj = new GameObject("Label");
+        labelObj.layer = 5;
         labelObj.transform.SetParent(btnObj.transform, false);
 
         RectTransform labelRect = labelObj.AddComponent<RectTransform>();
@@ -171,11 +212,13 @@ public class MenuManager : MonoBehaviour
         text.fontSize = 32;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = textColor;
+        text.raycastTarget = false; // Don't block the button Image underneath
     }
 
     void CreateVolumeSlider(Transform parent, float yPos)
     {
         GameObject sliderObj = new GameObject("VolumeSlider");
+        sliderObj.layer = 5;
         sliderObj.transform.SetParent(parent, false);
 
         RectTransform sliderRect = sliderObj.AddComponent<RectTransform>();
@@ -189,6 +232,7 @@ public class MenuManager : MonoBehaviour
 
         // Background
         GameObject bg = new GameObject("Background");
+        bg.layer = 5;
         bg.transform.SetParent(sliderObj.transform, false);
         RectTransform bgRect = bg.AddComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero;
@@ -199,6 +243,7 @@ public class MenuManager : MonoBehaviour
 
         // Fill area
         GameObject fillArea = new GameObject("Fill Area");
+        fillArea.layer = 5;
         fillArea.transform.SetParent(sliderObj.transform, false);
         RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
         fillAreaRect.anchorMin = Vector2.zero;
@@ -206,6 +251,7 @@ public class MenuManager : MonoBehaviour
         fillAreaRect.sizeDelta = new Vector2(-20, 0);
 
         GameObject fill = new GameObject("Fill");
+        fill.layer = 5;
         fill.transform.SetParent(fillArea.transform, false);
         RectTransform fillRect = fill.AddComponent<RectTransform>();
         fillRect.sizeDelta = Vector2.zero;
@@ -216,6 +262,7 @@ public class MenuManager : MonoBehaviour
 
         // Handle area
         GameObject handleArea = new GameObject("Handle Slide Area");
+        handleArea.layer = 5;
         handleArea.transform.SetParent(sliderObj.transform, false);
         RectTransform handleAreaRect = handleArea.AddComponent<RectTransform>();
         handleAreaRect.anchorMin = Vector2.zero;
@@ -223,6 +270,7 @@ public class MenuManager : MonoBehaviour
         handleAreaRect.sizeDelta = new Vector2(-20, 0);
 
         GameObject handle = new GameObject("Handle");
+        handle.layer = 5;
         handle.transform.SetParent(handleArea.transform, false);
         RectTransform handleRect = handle.AddComponent<RectTransform>();
         handleRect.sizeDelta = new Vector2(20, 0);
