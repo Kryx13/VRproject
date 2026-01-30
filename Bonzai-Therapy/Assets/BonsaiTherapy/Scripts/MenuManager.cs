@@ -1,7 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using UnityEngine.XR.Interaction.Toolkit.UI;
 
 public class MenuManager : MonoBehaviour
 {
@@ -9,12 +9,13 @@ public class MenuManager : MonoBehaviour
     GameObject mainPanel;
     GameObject settingsPanel;
 
-    static readonly Color textColor  = new Color(0.996f, 0.839f, 0.996f, 1f); // #FED6FE
+    static readonly Color textColor  = new Color(0.996f, 0.839f, 0.996f, 1f);
     static readonly Color panelColor = new Color(0.1f, 0.1f, 0.1f, 0.85f);
     static readonly Color btnColor   = new Color(0.25f, 0.25f, 0.25f, 1f);
 
     float panelDistance = 1.5f;
     float followSpeed   = 2f;
+    float fixedHeight;
     bool  placed;
 
     void Start()
@@ -35,19 +36,26 @@ public class MenuManager : MonoBehaviour
             forward = cam.transform.forward;
         forward.Normalize();
 
-        Vector3 targetPos = cam.transform.position + forward * panelDistance;
-        Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
-
         if (!placed)
         {
-            // First valid frame: snap into position
-            menuCanvas.transform.position = targetPos;
-            menuCanvas.transform.rotation = targetRot;
+            // Snap once, lock the height
+            fixedHeight = cam.transform.position.y;
+
+            Vector3 pos = cam.transform.position + forward * panelDistance;
+            pos.y = fixedHeight;
+
+            menuCanvas.transform.position = pos;
+            menuCanvas.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
             placed = true;
         }
         else
         {
-            // Gentle follow so the menu stays reachable but stable enough to interact with
+            // Follow horizontal rotation only, keep height locked
+            Vector3 targetPos = cam.transform.position + forward * panelDistance;
+            targetPos.y = fixedHeight;
+
+            Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
+
             float dt = Time.unscaledDeltaTime;
             menuCanvas.transform.position = Vector3.Lerp(menuCanvas.transform.position, targetPos, followSpeed * dt);
             menuCanvas.transform.rotation = Quaternion.Slerp(menuCanvas.transform.rotation, targetRot, followSpeed * dt);
@@ -92,35 +100,37 @@ public class MenuManager : MonoBehaviour
 
     void BuildUI()
     {
-        // ── World-space canvas ──
         GameObject canvasObj = new GameObject("MenuCanvas");
-        canvasObj.layer = 5; // UI layer
-        canvasObj.transform.SetParent(transform);
+        canvasObj.layer = 5;
 
         menuCanvas = canvasObj.AddComponent<Canvas>();
         menuCanvas.renderMode = RenderMode.WorldSpace;
 
         RectTransform canvasRect = menuCanvas.GetComponent<RectTransform>();
         canvasRect.sizeDelta = new Vector2(400, 600);
-        canvasRect.localScale = Vector3.one * 0.002f;
+        canvasObj.transform.localScale = Vector3.one * 0.002f;
 
         canvasObj.AddComponent<CanvasScaler>();
-        canvasObj.AddComponent<TrackedDeviceGraphicRaycaster>();
+
+        // Try to add TrackedDeviceGraphicRaycaster for VR controller rays.
+        // Fall back to GraphicRaycaster if the XRI UI assembly is unavailable.
+        Type vrRaycaster = Type.GetType(
+            "UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster, Unity.XR.Interaction.Toolkit");
+        if (vrRaycaster != null)
+            canvasObj.AddComponent(vrRaycaster);
+        else
+            canvasObj.AddComponent<GraphicRaycaster>();
 
         // ── Main panel ──
         mainPanel = CreatePanel(canvasObj.transform, "MainPanel", canvasRect.sizeDelta);
 
         float y = 230f;
-
         CreateLabel(mainPanel.transform, "TitleText", "Bonza\u00ef Therapy", 44, y);
         y -= 120f;
-
         CreateButton(mainPanel.transform, "PlayButton", "Play", y, PlayGame);
         y -= 80f;
-
         CreateButton(mainPanel.transform, "SettingsButton", "Settings", y, ShowSettings);
         y -= 80f;
-
         CreateButton(mainPanel.transform, "QuitButton", "Quit", y, QuitGame);
 
         // ── Settings panel ──
@@ -135,13 +145,6 @@ public class MenuManager : MonoBehaviour
     }
 
     // ───────────────────── Helpers ─────────────────────
-
-    static void SetLayerRecursive(GameObject obj, int layer)
-    {
-        obj.layer = layer;
-        foreach (Transform child in obj.transform)
-            SetLayerRecursive(child.gameObject, layer);
-    }
 
     GameObject CreatePanel(Transform parent, string name, Vector2 size)
     {
@@ -176,7 +179,7 @@ public class MenuManager : MonoBehaviour
         text.fontSize = fontSize;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = textColor;
-        text.raycastTarget = false; // Don't block button clicks
+        text.raycastTarget = false;
     }
 
     void CreateButton(Transform parent, string name, string label, float yPos, UnityEngine.Events.UnityAction action)
@@ -197,7 +200,6 @@ public class MenuManager : MonoBehaviour
         btn.targetGraphic = img;
         btn.onClick.AddListener(action);
 
-        // Label (child)
         GameObject labelObj = new GameObject("Label");
         labelObj.layer = 5;
         labelObj.transform.SetParent(btnObj.transform, false);
@@ -212,7 +214,7 @@ public class MenuManager : MonoBehaviour
         text.fontSize = 32;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = textColor;
-        text.raycastTarget = false; // Don't block the button Image underneath
+        text.raycastTarget = false;
     }
 
     void CreateVolumeSlider(Transform parent, float yPos)
@@ -230,7 +232,6 @@ public class MenuManager : MonoBehaviour
         slider.maxValue = 1f;
         slider.value = AudioListener.volume;
 
-        // Background
         GameObject bg = new GameObject("Background");
         bg.layer = 5;
         bg.transform.SetParent(sliderObj.transform, false);
@@ -241,7 +242,6 @@ public class MenuManager : MonoBehaviour
         Image bgImg = bg.AddComponent<Image>();
         bgImg.color = new Color(0.3f, 0.3f, 0.3f, 1f);
 
-        // Fill area
         GameObject fillArea = new GameObject("Fill Area");
         fillArea.layer = 5;
         fillArea.transform.SetParent(sliderObj.transform, false);
@@ -260,7 +260,6 @@ public class MenuManager : MonoBehaviour
         Image fillImg = fill.AddComponent<Image>();
         fillImg.color = new Color(0.4f, 0.8f, 0.4f, 1f);
 
-        // Handle area
         GameObject handleArea = new GameObject("Handle Slide Area");
         handleArea.layer = 5;
         handleArea.transform.SetParent(sliderObj.transform, false);
