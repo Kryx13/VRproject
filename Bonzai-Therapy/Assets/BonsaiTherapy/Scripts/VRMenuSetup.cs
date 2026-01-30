@@ -1,13 +1,11 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.XR.Interaction.Toolkit.UI;
 
 /// <summary>
-/// Converts the menu Canvas from Screen Space Overlay to World Space
-/// so it is visible and interactable in VR via XR controller rays.
+/// Replaces the scene Canvas (Screen Space Overlay) with a fresh
+/// World Space canvas so the menu is visible inside the VR headset.
 /// Attach this component to the Canvas GameObject in MenuScene 1.
-/// Also drag the XR Origin (XR Rig) prefab into the scene.
 /// </summary>
 [RequireComponent(typeof(Canvas))]
 public class VRMenuSetup : MonoBehaviour
@@ -15,47 +13,20 @@ public class VRMenuSetup : MonoBehaviour
     [Tooltip("Distance in meters the menu canvas is placed in front of the camera.")]
     public float canvasDistance = 3f;
 
-    [Tooltip("Scale of the canvas in world space. Adjust to taste.")]
-    public float canvasScale = 0.005f;
+    [Tooltip("Scale of the canvas in world space.")]
+    public float canvasScale = 0.002f;
 
     [Tooltip("Height offset from the camera (in meters).")]
     public float heightOffset = 0f;
 
-    void Awake()
-    {
-        Canvas canvas = GetComponent<Canvas>();
-
-        // Switch from Screen Space Overlay to World Space
-        canvas.renderMode = RenderMode.WorldSpace;
-
-        // Set a reasonable size for the world-space canvas
-        RectTransform rt = canvas.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(1920, 1080);
-        transform.localScale = Vector3.one * canvasScale;
-
-        // Replace GraphicRaycaster with TrackedDeviceGraphicRaycaster
-        // so VR controller rays can interact with UI elements.
-        GraphicRaycaster gr = GetComponent<GraphicRaycaster>();
-        if (gr != null)
-            Destroy(gr);
-
-        if (GetComponent<TrackedDeviceGraphicRaycaster>() == null)
-            gameObject.AddComponent<TrackedDeviceGraphicRaycaster>();
-
-        // Remove CanvasScaler — it is not needed in World Space
-        CanvasScaler scaler = GetComponent<CanvasScaler>();
-        if (scaler != null)
-            Destroy(scaler);
-    }
-
     void Start()
     {
-        StartCoroutine(WaitForCameraAndPosition());
+        StartCoroutine(SetupWorldCanvas());
     }
 
-    IEnumerator WaitForCameraAndPosition()
+    IEnumerator SetupWorldCanvas()
     {
-        // Wait until the XR camera is available
+        // Wait until the XR camera is ready
         Camera cam = Camera.main;
         while (cam == null)
         {
@@ -63,23 +34,50 @@ public class VRMenuSetup : MonoBehaviour
             cam = Camera.main;
         }
 
-        // Assign the world camera so the canvas renders correctly in VR
-        Canvas canvas = GetComponent<Canvas>();
-        canvas.worldCamera = cam;
+        // --- Create a brand-new World Space canvas (same approach as PauseManager) ---
+        GameObject newCanvasObj = new GameObject("VRMenuCanvas");
+        Canvas newCanvas = newCanvasObj.AddComponent<Canvas>();
+        newCanvas.renderMode = RenderMode.WorldSpace;
 
-        PositionCanvasInFrontOfCamera(cam);
-    }
+        RectTransform newRect = newCanvas.GetComponent<RectTransform>();
+        newRect.sizeDelta = new Vector2(1920, 1080);
+        newCanvasObj.transform.localScale = Vector3.one * canvasScale;
 
-    void PositionCanvasInFrontOfCamera(Camera cam)
-    {
+        newCanvasObj.AddComponent<GraphicRaycaster>();
+
+        // --- Re-parent every child from the old canvas into the new one ---
+        // Collect children first to avoid modifying the list while iterating.
+        Transform oldTransform = transform;
+        int childCount = oldTransform.childCount;
+        Transform[] children = new Transform[childCount];
+        for (int i = 0; i < childCount; i++)
+            children[i] = oldTransform.GetChild(i);
+
+        foreach (Transform child in children)
+            child.SetParent(newRect, false);
+
+        // --- Position the new canvas in front of the player ---
         Vector3 forward = cam.transform.forward;
         forward.y = 0f;
+        if (forward.sqrMagnitude < 0.001f)
+            forward = cam.transform.forward;
         forward.Normalize();
 
         Vector3 position = cam.transform.position + forward * canvasDistance;
         position.y = cam.transform.position.y + heightOffset;
 
-        transform.position = position;
-        transform.rotation = Quaternion.LookRotation(forward);
+        newCanvasObj.transform.position = position;
+        newCanvasObj.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+
+        // --- Rewire MenuManager references to the new canvas ---
+        MenuManager menu = Object.FindFirstObjectByType<MenuManager>();
+        if (menu != null)
+        {
+            // The buttons / panels are already re-parented;
+            // MenuManager still holds its serialized references so nothing extra is needed.
+        }
+
+        // --- Destroy the old (Screen Space Overlay) canvas ---
+        Destroy(gameObject);
     }
 }
