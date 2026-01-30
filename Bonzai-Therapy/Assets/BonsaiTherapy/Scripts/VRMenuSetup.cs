@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.UI;
@@ -49,15 +50,28 @@ public class VRMenuSetup : MonoBehaviour
 
     void Start()
     {
-        PositionCanvasInFrontOfCamera();
+        StartCoroutine(WaitForCameraAndPosition());
     }
 
-    void PositionCanvasInFrontOfCamera()
+    IEnumerator WaitForCameraAndPosition()
     {
+        // Wait until the XR camera is available
         Camera cam = Camera.main;
-        if (cam == null)
-            return;
+        while (cam == null)
+        {
+            yield return null;
+            cam = Camera.main;
+        }
 
+        // Assign the world camera so the canvas renders correctly in VR
+        Canvas canvas = GetComponent<Canvas>();
+        canvas.worldCamera = cam;
+
+        PositionCanvasInFrontOfCamera(cam);
+    }
+
+    void PositionCanvasInFrontOfCamera(Camera cam)
+    {
         Vector3 forward = cam.transform.forward;
         forward.y = 0f;
         forward.Normalize();
