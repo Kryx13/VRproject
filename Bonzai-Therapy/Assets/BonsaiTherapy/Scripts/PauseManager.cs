@@ -128,6 +128,16 @@ public class PauseManager : MonoBehaviour
         AudioListener.volume = value;
     }
 
+    void RegenerateBonsai()
+    {
+        BonsaiMaster master = Object.FindFirstObjectByType<BonsaiMaster>();
+        if (master != null)
+        {
+            master.RandomizeBonsai();
+        }
+        Resume();
+    }
+
     void QuitGame()
     {
         Time.timeScale = 1f;
@@ -151,7 +161,7 @@ public class PauseManager : MonoBehaviour
         pauseCanvas.renderMode = RenderMode.WorldSpace;
 
         RectTransform canvasRect = pauseCanvas.GetComponent<RectTransform>();
-        canvasRect.sizeDelta = new Vector2(400, 600);
+        canvasRect.sizeDelta = new Vector2(400, 680);
         canvasRect.localScale = Vector3.one * 0.002f;
 
         canvasObj.AddComponent<CanvasScaler>();
@@ -178,10 +188,13 @@ public class PauseManager : MonoBehaviour
         CreateButton(mainPanel.transform, "SettingsButton", "Settings", y, ShowSettings);
         y -= 80f;
 
+        CreateButton(mainPanel.transform, "RegenerateButton", "Regenerate", y, RegenerateBonsai);
+        y -= 80f;
+
         CreateButton(mainPanel.transform, "QuitButton", "Quit", y, QuitGame);
 
         // ── Settings panel ──
-        settingsPanel = CreatePanel(canvasObj.transform, "SettingsPanel", canvasRect.sizeDelta);
+        settingsPanel = CreatePanel(canvasObj.transform, "SettingsPanel", new Vector2(400, 680));
 
         CreateLabel(settingsPanel.transform, "SettingsTitle", "Settings", 44, 230f);
         CreateLabel(settingsPanel.transform, "VolumeLabel", "Volume", 28, 80f);
