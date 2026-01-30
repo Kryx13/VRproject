@@ -10,24 +10,16 @@ public class MenuManager : MonoBehaviour
     static readonly Color textColor = new Color(0.996f, 0.839f, 0.996f, 1f); // #FED6FE
 
     float panelDistance = 1.5f;
-    float followSpeed = 8f;
 
     void Start()
     {
         BuildUI();
-        PositionInFrontOfPlayer();
     }
 
-    void Update()
+    void LateUpdate()
     {
-        if (menuCanvas != null)
-            FollowPlayer();
-    }
+        if (menuCanvas == null) return;
 
-    // ───────────────────── Positioning ─────────────────────
-
-    void PositionInFrontOfPlayer()
-    {
         Camera cam = Camera.main;
         if (cam == null) return;
 
@@ -39,25 +31,6 @@ public class MenuManager : MonoBehaviour
 
         menuCanvas.transform.position = cam.transform.position + forward * panelDistance;
         menuCanvas.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
-    }
-
-    void FollowPlayer()
-    {
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        Vector3 forward = cam.transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude < 0.001f)
-            forward = cam.transform.forward;
-        forward.Normalize();
-
-        Vector3 targetPos = cam.transform.position + forward * panelDistance;
-        Quaternion targetRot = Quaternion.LookRotation(forward, Vector3.up);
-
-        float dt = Time.unscaledDeltaTime;
-        menuCanvas.transform.position = Vector3.Lerp(menuCanvas.transform.position, targetPos, followSpeed * dt);
-        menuCanvas.transform.rotation = Quaternion.Slerp(menuCanvas.transform.rotation, targetRot, followSpeed * dt);
     }
 
     // ───────────────────── Actions ─────────────────────
